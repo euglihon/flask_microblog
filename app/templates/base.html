@@ -10,16 +10,23 @@
   <body>
     <div>Microblog: 
       <a href="{{ url_for('index') }}">Home</a>
-      <a href="{{ url_for('login') }}">Login</a>
+
+        {% if current_user.is_anonymous %}
+            {# flask-login встроенный метод current_user #}
+            <a href="{{ url_for('login') }}">Login</a>
+            {% else %}
+            <a href="{{ url_for('logout') }}">Logout</a>
+        {% endif %}
+
     </div>
     <div>
       <hr>
-      <!-- flash form message-->
       {% with messages = get_flashed_messages() %}
+          {# Принимаем флеш сообщение из функции login #}
         {% if messages %}
           <ul>
             {% for message in messages %}
-              <li>{{ message }}</li>
+              <li style="color: red">{{ message }}</li>
             {% endfor %}
           </ul>
         {% endif %} 
