@@ -14,7 +14,13 @@
         {% if current_user.is_anonymous %}
             {# flask-login встроенный метод current_user #}
             <a href="{{ url_for('login') }}">Login</a>
-            {% else %}
+
+        {% else %}
+             {# если пользователь залогирован #}
+             {# линк перенаплав. на функцию user с динамически приписанием в маршрут имени пользователя #}
+             {# flask-login встроенный метод current_user #}
+            <a href="{{ url_for('user', username=current_user.username) }}">Profile</a>
+             {# добавляем ссылку на функцию logout #}
             <a href="{{ url_for('logout') }}">Logout</a>
         {% endif %}
 
