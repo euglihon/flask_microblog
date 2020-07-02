@@ -17,6 +17,6 @@ db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 
 
-from app import routers, models
+from app import routers, models, errors
 
 
