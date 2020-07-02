@@ -93,3 +93,19 @@ def register():
         flash('Congratulations, you are now a registered user!')
         return redirect(url_for('login'))
     return render_template('register.html', title='Register', form=form)
+
+
+@app.route('/user/<username>')  # динамическое приписание  username
+@login_required  # защита от анонимного входа
+def user(username):
+    # поиск юзера с входным именем в таблице
+    # first_or_404() -- работает как first()б но если результата нет вернет 404
+    user = User.query.filter_by(username=username).first_or_404()
+
+    # временный список
+    posts = [
+        {'author': user.username, 'body': 'Test post #1'},
+        {'author': user.username, 'body': 'Test post #2'},
+    ]
+
+    return render_template('user.html', posts=posts, user=user)
