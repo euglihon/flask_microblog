@@ -1,3 +1,5 @@
+from hashlib import md5  # либа для работы с сервисом gravatar
+
 from app import db
 from datetime import datetime
 
@@ -19,7 +21,6 @@ class User(UserMixin, db.Model): # add Mixin
     email = db.Column(db.String(64), index=True, unique=True)
     # поле сетается из функции set_password
     password_hash = db.Column(db.String(128))
-
     # указатель на создание связи с таблицей Post и для обратной связи через таблицу User
     posts = db.relationship('Post', backref='author', lazy='dynamic')
 
@@ -30,6 +31,13 @@ class User(UserMixin, db.Model): # add Mixin
     def check_password(self, password):
         # метод сравнения пароля с значением в хеше (True/False)
         return check_password_hash(self.password_hash, password)
+
+    def get_avatar(self, size):
+        # временная логика для генерации аватаров загруженных на gravatar.com
+        # grabatar позволяет к каждому email прикрепить фото
+                    # берем email из таблицы
+        digest = md5(self.email.lower().encode('utf-8')).hexdigest()
+        return f'https://www.gravatar.com/avatar/{digest}?d=identicon&s={size}'
 
     def __repr__(self):
         return f'<User {self.username}>'
