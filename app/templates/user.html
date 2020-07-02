@@ -3,9 +3,26 @@
 {% block content %}
     <table>
         <tr valign="top">
-            {# get_avatar() принимает размер требуемого изображения #}
-            <td><img src="{{ user.get_avatar(128) }}" alt="avatar img"></td>
-            <td><h1>User: {{ user.username }}</h1></td>
+            <td>
+                {# get_avatar(____) принимает размер требуемого изображения #}
+                <img src="{{ user.get_avatar(128) }}" alt="avatar img">
+            </td>
+
+            <td>
+                <h1>User: {{ user.username }}</h1>
+
+                {% if user.about_me %}
+                    {# если поле about_me (статус пользователя) сушествует в таблице User #}
+                    <p>{{ user.about_me }}</p>
+                {% endif %}
+
+                {% if user.last_seen %}
+                    {# если поле last_seen (дата последнего логирования) сушествует в таблице User #}
+                    <p>Last seen on: {{ user.last_seen }}</p>
+                {% endif %}
+
+                <a href="{{ url_for('edit_profile') }}">Edit your profile</a>
+            </td>
         </tr>
     </table>
     
