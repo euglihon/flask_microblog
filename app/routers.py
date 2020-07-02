@@ -2,12 +2,30 @@ from flask import render_template, flash, redirect, url_for, request
 from werkzeug.urls import url_parse
 
 from app import app
-from app.forms import LoginForm, RegistrationForm
+from app.forms import LoginForm, RegistrationForm, EditProfileForm
 
+from app import login
 from flask_login import current_user, login_user, logout_user, login_required
 from app.models import User
 
 from app import db
+
+from datetime import datetime
+
+
+@login.user_loader # автоматически регистрирует загрзк. пользователя (отслеживание)
+#  функция для работы flask-login (current_user и тд)
+def load_user(id):
+    return User.query.get(int(id))
+
+
+@app.before_request # функция автоматически будет выполнена перед функциями отрисовки для записи времени
+def before_request():
+    if current_user.is_authenticated:
+        # если юзер залогирован
+        # запись залогининому юзеру в поле last_seen времени
+        current_user.last_seen = datetime.utcnow()
+        db.session.commit()
 
 
 @app.route('/')
@@ -95,6 +113,7 @@ def register():
     return render_template('register.html', title='Register', form=form)
 
 
+# страница профиля
 @app.route('/user/<username>')  # динамическое приписание  username
 @login_required  # защита от анонимного входа
 def user(username):
@@ -109,3 +128,26 @@ def user(username):
     ]
 
     return render_template('user.html', posts=posts, user=user)
+
+
+@app.route('/edit_profile', methods=['GET', 'POST'])
+@login_required  # защита от анонимного входа
+def edit_profile():
+    form = EditProfileForm()
+
+    if form.validate_on_submit():
+        # если форма отправлена
+        # записываем новые значения залог. юзеру в таблице User из получе. данных из формы
+        current_user.username = form.username.data
+        current_user.about_me = form.about_me.data
+        db.session.commit()
+        # флешем отправляем сообшение в базовый шаблон
+        flash('Your changes have been saved')
+        return redirect(url_for('edit_profile'))
+
+    elif request.method == 'GET': # пустая загрузка формы (до отправки формы)
+        # записываем в поля формы информацию из таблици
+        form.username.data = current_user.username
+        form.about_me.data = current_user.about_me
+
+    return render_template('edit_profile.html', form=form)
