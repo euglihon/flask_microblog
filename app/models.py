@@ -6,23 +6,23 @@ from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 
 from flask_login import UserMixin
-from app import login
 
 
-@login.user_loader # регистрируем загрзк. пользователя (отслеживание)
-def load_user(id):
-    # делаем запрос к таблице User c id
-    return User.query.get(int(id))
 
-
-class User(UserMixin, db.Model): # add Mixin
+class User(UserMixin, db.Model): # add Mixin(flask-login)
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(64), index=True, unique=True)
     email = db.Column(db.String(64), index=True, unique=True)
     # поле сетается из функции set_password
     password_hash = db.Column(db.String(128))
+    # статус юзера
+    about_me = db.Column(db.String(140))
+    # данные о последнем логировании пользователя
+    last_seen = db.Column(db.DateTime)
+
     # указатель на создание связи с таблицей Post и для обратной связи через таблицу User
     posts = db.relationship('Post', backref='author', lazy='dynamic')
+
 
     def set_password(self, password):
         # метод создания пароля и записи хеша в таблице
@@ -41,6 +41,8 @@ class User(UserMixin, db.Model): # add Mixin
 
     def __repr__(self):
         return f'<User {self.username}>'
+
+
 
 
 class Post(db.Model):
