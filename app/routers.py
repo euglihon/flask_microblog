@@ -151,3 +151,47 @@ def edit_profile():
         form.about_me.data = current_user.about_me
 
     return render_template('edit_profile.html', form=form)
+
+
+# подписаться на юзернайма
+@app.route('/follow/<username>')
+@login_required
+def follow(username):
+    # запис. в переменную нужного юзера
+    user = User.query.filter_by(username=username).first()
+    if user is None:
+        # Если такой юзер не нашелся
+        flash(f'USer {username} not found')
+        return redirect(url_for('index'))
+
+    if user == current_user:
+        # Если юзер == залогиненый юзер
+        flash('You cannot follow yourself!')
+        # Редирект на страницу своего профиля
+        return redirect(url_for('user', username=username))
+
+    # Если все ок выполняем функцию фолоу у залог юзера (передаем в функцию юзера, которого нашли)
+    current_user.follow(user)
+    db.session.commit()
+    flash(f'You are following {username}')
+    # Редикерт на страницу этого юзера
+    return redirect(url_for('user', username=username))
+
+
+@app.route('/unfollow/<username>')
+@login_required
+def unfollow(username):
+    user = User.query.filter_by(username=username).first()
+
+    if user is None:
+        flash(f'USer {username} not found')
+        return redirect(url_for('index'))
+
+    if user == current_user:
+        flash('You cannot unfollow yourself!')
+        return redirect(url_for('user', username=username))
+
+    current_user.unfollow(user)
+    db.session.commit()
+    flash(f'You are not following {username}')
+    return redirect(url_for('user', username=username))
