@@ -2,15 +2,17 @@ from flask import render_template, flash, redirect, url_for, request
 from werkzeug.urls import url_parse
 
 from app import app
-from app.forms import LoginForm, RegistrationForm, EditProfileForm
+from app.forms import LoginForm, RegistrationForm, EditProfileForm, PostForm
 
 from app import login
 from flask_login import current_user, login_user, logout_user, login_required
-from app.models import User
+from app.models import User, Post
 
 from app import db
 
 from datetime import datetime
+
+
 
 
 @login.user_loader # автоматически регистрирует загрзк. пользователя (отслеживание)
@@ -28,25 +30,44 @@ def before_request():
         db.session.commit()
 
 
-@app.route('/')
-@app.route('/index')
+
+
+@app.route('/', methods=['GET', 'POST'])
+@app.route('/index', methods=['GET', 'POST'])
 @login_required  # декоратор(flask-login) зашишает от анонимного юзера функцию и перенаправляет на '/login'
 # + декоратор передаст GET значение   Next   в функцию login, чтобы после логирования вернуться на нужную страницу
 def index():
-    posts = [
-        {
-            'author': {'username': 'John'},
-            'body': 'Beautiful day in Portland!'
-        },
-        {
-            'author': {'username': 'Susan'},
-            'body': 'The Avengers movie was so cool!'
-        },
-        {
-            'author': {'username': 'Ипполит'},
-            'body': 'Какая гадость эта ваша заливная рыба!!'
-        }]
-    return render_template('index.html', posts=posts)
+    form = PostForm()
+    # Создание поста на главной странице
+    if form.validate_on_submit():
+        # Если форма отправлн.
+        post = Post(body=form.post.data, author=current_user)
+        db.session.add(post)
+        db.session.commit()
+        flash('You post is now live!')
+        return redirect(url_for('index'))
+
+    # записываем результат функции поиска всех постов на которые подписан и своих (models User)
+    posts = current_user.followed_posts()
+
+    # Создание пагинации (номер страницы)
+    page = request.args.get('page', 1, type=int)
+                                # количество постов возьмет из конфина
+                                                             # обработка вне диапзона
+    posts = posts.paginate(page, app.config['POSTS_PER_PAGE'], False)
+
+    # Созадние линков для перелистывания страниц пагинации
+    # из стандартных элементов paginate
+    # если страница (has_next, has_prev) в конце то ссылка будет None
+    next_url = url_for('index', page=posts.next_num) \
+        if posts.has_next else None
+
+    prev_url = url_for('index', page=posts.prev_num) \
+        if posts.has_prev else None
+                                                    # items нужно для работы пагинации
+    return render_template('index.html', posts=posts.items, form=form, next_url=next_url, prev_url=prev_url)
+
+
 
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -87,11 +108,15 @@ def login():
     return render_template('login.html', title='Sign In', form=form)
 
 
+
+
 @app.route('/logout')
 def logout():
     # метод из flask-login
     logout_user()
     return redirect(url_for('index'))
+
+
 
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -113,6 +138,8 @@ def register():
     return render_template('register.html', title='Register', form=form)
 
 
+
+
 # страница профиля
 @app.route('/user/<username>')  # динамическое приписание  username
 @login_required  # защита от анонимного входа
@@ -120,14 +147,10 @@ def user(username):
     # поиск юзера с входным именем в таблице
     # first_or_404() -- работает как first()б но если результата нет вернет 404
     user = User.query.filter_by(username=username).first_or_404()
-
-    # временный список
-    posts = [
-        {'author': user.username, 'body': 'Test post #1'},
-        {'author': user.username, 'body': 'Test post #2'},
-    ]
-
+    posts = user.posts.all()
     return render_template('user.html', posts=posts, user=user)
+
+
 
 
 @app.route('/edit_profile', methods=['GET', 'POST'])
@@ -151,6 +174,8 @@ def edit_profile():
         form.about_me.data = current_user.about_me
 
     return render_template('edit_profile.html', form=form)
+
+
 
 
 # подписаться на юзернайма
@@ -178,6 +203,8 @@ def follow(username):
     return redirect(url_for('user', username=username))
 
 
+
+
 @app.route('/unfollow/<username>')
 @login_required
 def unfollow(username):
@@ -195,3 +222,23 @@ def unfollow(username):
     db.session.commit()
     flash(f'You are not following {username}')
     return redirect(url_for('user', username=username))
+
+
+
+
+# Страница глобального потока всех сообщений
+@app.route('/explore')
+@login_required
+def explore():
+    posts = Post.query.order_by(Post.timestamp.desc())
+
+    # настройка пагинации постов
+    page = request.args.get('page', 1, type=int)
+    posts = posts.paginate(page, app.config['POSTS_PER_PAGE'], False)
+
+    next_url = url_for('explore', page=posts.next_num) \
+        if posts.has_next else None
+    prev_url = url_for('explore', page=posts.prev_num) \
+        if posts.has_prev else None
+
+    return render_template('index.html', title='Explore', posts=posts.items, next_url=next_url, prev_url=prev_url)

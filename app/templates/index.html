@@ -4,12 +4,40 @@
     <h1>Hi, {{ current_user.username }}</h1>
     {# current_user --- flask-login (залогиненый пользлватель) #}
     {# username --- имя из таблицы залогиненого пользователя #}
-    {% for post in posts %}
-        {# получаем посты из функции index #}
-        <div>
+    
+    {# Если только форма передается в шаблон #}
+    {% if form  %}
+
+        <form action="" method="POST">
+            {{ form.hidden_tag() }}
             <p>
-                {{ post.author.username }} says: <b>{{ post.body }}</b>
+                {{ form.post.label }}
+                <br>
+                <br>
+                {{ form.post(cols=32, rows=4) }}
+                <br>
+                {% for error in form.post.errors %}
+			              <span style="color: red;">[{{ error }}]</span>
+		            {% endfor %}
             </p>
-        </div>
-    {% endfor %}
+            <p>
+                {{ form.submit() }}
+            </p>
+        </form>
+
+    {% endif %}
+
+        {% for post in posts %}
+            {# получаем посты из функции index #}
+               {% include '_post.html' %}
+        {% endfor %}
+
+        {# Кнопки пагинации #}
+        {% if prev_url %}
+            <a href="{{ prev_url }}">Never posts</a>
+        {% endif %}
+
+        {% if next_url %}
+            <a href="{{ next_url }}">Older posts</a>
+        {% endif %}
 {% endblock %}
