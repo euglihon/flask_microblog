@@ -1,11 +1,11 @@
 {% extends 'base.html' %}
 
-{% block content %}
-    <table>
-        <tr valign="top">
-            <td>
+{% block app_main_block %}
+    <table class="table table-hover">
+        <tr>
+            <td width="50px">
                 {# get_avatar(____) принимает размер требуемого изображения #}
-                <img src="{{ user.get_avatar(128) }}" alt="avatar img">
+                <img style="margin-top: 30px" src="{{ user.get_avatar(128) }}" alt="avatar img">
             </td>
 
             <td>
@@ -18,10 +18,11 @@
 
                 {% if user.last_seen %}
                     {# если поле last_seen (дата последнего логирования) сушествует в таблице User #}
-                    <p>Last seen on: {{ user.last_seen }}</p>
+
+                    {# с функцией moment #}
+                    <p>Last seen on: {{ moment(user.last_seen).fromNow() }}</p>
+                    {#<p>Last seen on: {{ user.last_seen }}</p>#}
                 {% endif %}
-
-
 
                     {# сколько на него подписаны           на кого подписан(количестов) #}
                 <p>{{ user.followers.count() }} followers, {{ user.followed.count() }} following</p>
@@ -42,8 +43,7 @@
             </td>
         </tr>
     </table>
-    
-    <hr>
+
     {% for post in posts %}
         {% include '_post.html' %}
     {% endfor %}
