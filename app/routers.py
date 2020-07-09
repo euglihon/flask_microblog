@@ -11,6 +11,9 @@ from app.models import User, Post
 from datetime import datetime
 from flask_babel import _, get_locale
 
+# библиотека дял определения языка на клиенте (создание постов)
+from guess_language import guess_language
+
 
 @login.user_loader  # автоматическое отслеживание залогиненного пользователя
 #  функция для работы flask-login (current_user и тд)
@@ -38,10 +41,16 @@ def index():
     # Форма создание поста на главной странице
     if form.validate_on_submit():
         # Если форма выслана
-        post = Post(body=form.post.data, author=current_user)
+
+        # Определение языка в создаваемого поста
+        language = guess_language(form.post.data)
+        if language == 'UNKNOWN' or len(language) > 5:
+            language = ''
+
+        post = Post(body=form.post.data, author=current_user, language=language)
         db.session.add(post)
         db.session.commit()
-        flash(_('You post is now live!'))  # добавлен babel
+        flash(_('You post is now live!'))
         return redirect(url_for('index'))
 
     # записываем результат функции поиска всех постов на которые подписан и своих (models User)

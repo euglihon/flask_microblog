@@ -10,6 +10,13 @@
                 {{ post.author.username }}
             </a>
             {{ _('says:') }} {{ moment(post.timestamp).fromNow() }}:<br>{{ post.body }}
+            <br>
+
+            {# Заглугка для автоматического перевод написанного текста (guess_language) #}
+            {# Необходимо подлк. к API например Microsoft Azure #}
+            {% if post.language and post.language != g.locale %}
+                <a href="">{{ _('Translate') }}</a>
+            {% endif %}
         </td>
     </tr>
 </table>
