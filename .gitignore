@@ -27,3 +27,4 @@ messages.pot
 venv
 app.db
 microblog.log*
+.idea/
