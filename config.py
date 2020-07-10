@@ -16,6 +16,10 @@ class Config(object):
 	# конфигурация babel
 	LANGUAGES = ['en', 'ru']
 
+	# поиск текста на станицах
+	#ELASTICSEARCH_URL = os.environ.get('ELASTICSEARCH_URL')
+	ELASTICSEARCH_URL = 'http://localhost:9200'
+
 	# конфигурация отправки электронной почты
 	MAIL_SERVER = os.environ.get('MAIL_SERVER')
 	MAIL_PORT = int(os.environ.get('MAIL_PORT') or 25)

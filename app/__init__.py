@@ -7,6 +7,7 @@ from flask_mail import Mail
 from flask_bootstrap import Bootstrap
 from flask_moment import Moment # либа для перевода времени пользователя в utc
 from flask_babel import Babel, _ # либа для транслитерации текста
+from elasticsearch import Elasticsearch
 
 
 db = SQLAlchemy()
@@ -28,6 +29,14 @@ mail = Mail()
 def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
+
+    # реализация поиска
+    # необходимо установить Elasticsearch в linux и проверить его работу на 9200 порту
+    #https://losst.ru/ispolzovanie-elasticsearch
+    #sudo systemctl start elasticsearch
+    
+    app.elasticsearch = Elasticsearch([app.config['ELASTICSEARCH_URL']]) \
+        if app.config['ELASTICSEARCH_URL'] else None
 
     db.init_app(app)
     migrate.init_app(app, db)
