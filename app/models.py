@@ -1,11 +1,16 @@
 from hashlib import md5  # либа для работы с сервисом gravatar
 import jwt  # либа для создания токенов (сброс пароля)
 from time import time
-from app import app
-from app import db
+from flask import current_app
+from app import db, login
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin
+
+
+@login.user_loader
+def load_user(id):
+    return User.query.get(int(id))
 
 
 # Вспомогательная таблица для связи many-to-many User--User
@@ -81,13 +86,13 @@ class User(UserMixin, db.Model):  # add Mixin(flask-login)
     def get_reset_password_token(self, expires_in=600):
         return jwt.encode(
             {'reset_password': self.id, 'exp': time() + expires_in},
-            app.config['SECRET_KEY'], algorithm='HS256').decode('utf-8')
+            current_app.config['SECRET_KEY'], algorithm='HS256').decode('utf-8')
 
     @staticmethod  # статический метод
     def verify_reset_password_token(token):
         # проверка токена на подлинность
         try:
-            id = jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'])['rest_password']
+            id = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=['HS256'])['rest_password']
         except:
             return
         return User.query.get(id)
