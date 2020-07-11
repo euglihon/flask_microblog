@@ -8,7 +8,7 @@ class Config(object):
 
 	# конфигурация подключения к БД
 	SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///' + os.path.join(basedir, 'app.db')
-	SQLALCHEMy_TRACK_MODIFICATIONS = False
+	SQLALCHEMY_TRACK_MODIFICATIONS = False
 
 	# количество постов на странице
 	POSTS_PER_PAGE = 3

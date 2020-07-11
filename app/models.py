@@ -1,13 +1,14 @@
 from hashlib import md5  # либа для работы с сервисом gravatar
 import jwt  # либа для создания токенов (сброс пароля)
 from time import time
+import json
 from flask import current_app
 from app import db, login
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin
-
 from app.search import add_to_index, remove_from_index, query_index
+
 
 
 @login.user_loader
@@ -53,9 +54,9 @@ class SearchableMixin(object):
         for obj in cls.query:
             add_to_index(cls.__tablename__, obj)
 
+
 db.event.listen(db.session, 'before_commit', SearchableMixin.before_commit)
 db.event.listen(db.session, 'after_commit', SearchableMixin.after_commit)
-
 
 # Вспомогательная таблица для связи many-to-many User--User
 followers = db.Table('followers',
@@ -72,9 +73,8 @@ class User(UserMixin, db.Model):  # add Mixin(flask-login)
     about_me = db.Column(db.String(140))
     # время последнего логирования
     last_seen = db.Column(db.DateTime)
-
-    # указатель на создание связи с таблицей Post и для обратной связи через таблицу User
-    posts = db.relationship('Post', backref='author', lazy='dynamic')
+    # последний вход на страницу сообщений (необходимо для определения непрочитаных сообщений)
+    last_message_read_time = db.Column(db.DateTime)
 
     # связь многие ко многими (в массиве будет храниться на кого подписан пользователь)
     followed = db.relationship(
@@ -84,6 +84,29 @@ class User(UserMixin, db.Model):  # add Mixin(flask-login)
         secondaryjoin=(followers.c.followed_id == id),
         backref=db.backref('followers', lazy='dynamic'), lazy='dynamic'
     )
+
+    posts = db.relationship('Post', backref='author', lazy='dynamic')
+
+    messages_sent = db.relationship('Message', foreign_keys='Message.sender_id', backref='author', lazy='dynamic')
+
+    messages_received = db.relationship('Message', foreign_keys='Message.recipient_id', backref='recipient',
+                                        lazy='dynamic')
+
+    notifications = db.relationship('Notification', backref='user', lazy='dynamic')
+
+    def new_messages(self):
+        # вернет количество неппрочитаных сообщений
+        last_read_time = self.last_message_read_time or datetime(1900, 1, 1)
+        return Message.query.filter_by(recipient=self).filter(Message.timestamp > last_read_time).count()
+
+    def add_notification(self, name, data):
+        # добавление уведомления в базу
+        # если имя то-же, то удалить
+        self.notifications.filter_by(name=name).delete()
+        notific = Notification(name=name, payload_json=json.dumps(data), user=self)
+        db.session.add(notific)
+        return notific
+
 
     def follow(self, user):
         if not self.is_following(user):
@@ -148,14 +171,33 @@ class User(UserMixin, db.Model):  # add Mixin(flask-login)
 class Post(SearchableMixin, db.Model):
     # метка для индексации поиском
     __searchable__ = ['body']
-
     id = db.Column(db.Integer, primary_key=True)
     body = db.Column(db.String(140))
     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
-    # поле содержит язык публикации
-    language = db.Column(db.String(5))
-
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
 
     def __repr__(self):
         return f'<Post {self.body}>'
+
+
+class Message(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    sender_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    recipient_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    body = db.Column(db.String(140))
+    timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
+
+    def __repr__(self):
+        return f'<Message {self.body}>'
+
+
+class Notification(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(128), index=True)
+    timestamp = db.Column(db.Float, index=True, default=time)
+    payload_json = db.Column(db.Text)
+
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+
+    def get_data(self):
+        return json.loads(str(self.payload_json))

@@ -11,6 +11,17 @@
             <td>
                 <h1>{{ user.username }}</h1>
 
+
+                {# Форма отправки  личного сообщения #}
+                {% if user != current_user %}
+                    <p>
+                        <a href="{{ url_for('main.send_message', recipient=user.username) }}">
+                            {{ _('Send private message') }}
+                        </a>
+                    </p>
+                {% endif %}
+
+
                 {% if user.about_me %}
                     {# если поле about_me (статус пользователя) сушествует в таблице User #}
                     <p>{{ user.about_me }}</p>
